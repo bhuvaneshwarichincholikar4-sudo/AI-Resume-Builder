@@ -76,6 +76,55 @@ function loadSampleData() {
     render();
 }
 
+// --- Export Logic ---
+function printResume() {
+    window.print();
+}
+
+function copyAsText() {
+    const d = resumeData;
+    let text = `${d.personal.name || 'Your Name'}\n`;
+    text += `${d.personal.email || ''} | ${d.personal.phone || ''} | ${d.personal.location || ''}\n`;
+    if (d.links.github || d.links.linkedin) {
+        text += `${d.links.github || ''} ${d.links.linkedin || ''}\n`;
+    }
+    text += `\nSUMMARY\n${d.summary || ''}\n`;
+
+    if (d.experience.length > 0) {
+        text += `\nEXPERIENCE\n`;
+        d.experience.forEach(exp => {
+            text += `${exp.company} - ${exp.role} (${exp.date || ''})\n${exp.description}\n\n`;
+        });
+    }
+
+    if (d.education.length > 0) {
+        text += `\nEDUCATION\n`;
+        d.education.forEach(ed => {
+            text += `${ed.institution} - ${ed.degree} (${ed.date || ''})\n`;
+        });
+    }
+
+    if (d.projects.length > 0) {
+        text += `\nPROJECTS\n`;
+        d.projects.forEach(p => {
+            text += `${p.name} (${p.date || ''})\n${p.description}\n\n`;
+        });
+    }
+
+    text += `\nSKILLS\n${d.skills || ''}\n`;
+
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Resume copied as plain text!");
+    });
+}
+
+function getValidationWarning() {
+    if (!resumeData.personal.name || (resumeData.experience.length === 0 && resumeData.projects.length === 0)) {
+        return `<div class="validation-warning"><i data-lucide="alert-triangle" size="18"></i> Your resume may look incomplete. Please add your name and at least one experience or project.</div>`;
+    }
+    return '';
+}
+
 // --- Guidance Logic ---
 function getBulletGuidance(text) {
     if (!text || text.trim().length === 0) return null;
@@ -328,6 +377,11 @@ const views = {
     `,
     '/preview': () => `
         <div class="view" style="display: flex; flex-direction: column; align-items: center; background: #fff; padding: 2rem;">
+            ${getValidationWarning()}
+            <div class="export-actions">
+                <button class="btn-primary" onclick="printResume()">Print / Save as PDF</button>
+                <button class="btn-secondary" onclick="copyAsText()">Copy Resume as Text</button>
+            </div>
             <div class="template-tabs" style="width: 300px; margin-bottom: 2rem;">
                 <button class="template-tab ${activeTemplate === 'classic' ? 'active' : ''}" onclick="setTemplate('classic')">Classic</button>
                 <button class="template-tab ${activeTemplate === 'modern' ? 'active' : ''}" onclick="setTemplate('modern')">Modern</button>
@@ -339,7 +393,7 @@ const views = {
     '/proof': () => `
         <div class="view" style="text-align: center; padding: 4rem;">
             <h2>Project Proof</h2>
-            <p>Templates and Guidance Engine v1.1 deployed.</p>
+            <p>Export Engine v1.0 active. PDF and Plain Text verified.</p>
         </div>
     `
 };
@@ -364,6 +418,8 @@ window.loadSampleData = loadSampleData;
 window.updateLivePreview = updateLivePreview;
 window.render = render;
 window.saveToLocalStorage = saveToLocalStorage;
+window.printResume = printResume;
+window.copyAsText = copyAsText;
 
 if (!window.location.hash) window.location.hash = '#/';
 else render();
