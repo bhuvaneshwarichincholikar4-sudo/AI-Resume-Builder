@@ -1,219 +1,240 @@
-// Initialize Lucide icons
-lucide.createIcons();
-
-// --- Configuration ---
-const PROJECT_STEPS = [
-    { id: '01', title: 'Problem Statement', path: '/rb/01-problem', description: 'Define the core problem we are solving with the AI Resume Builder.' },
-    { id: '02', title: 'Market Research', path: '/rb/02-market', description: 'Identify target audience and competitor gaps.' },
-    { id: '03', title: 'Architecture Design', path: '/rb/03-architecture', description: 'High-level system design and component orchestration.' },
-    { id: '04', title: 'HLD (High Level Design)', path: '/rb/04-hld', description: 'Defining APIs, database schema and major modules.' },
-    { id: '05', title: 'LLD (Low Level Design)', path: '/rb/05-lld', description: 'Class structures, sequence diagrams and algorithms.' },
-    { id: '06', title: 'Core Build', path: '/rb/06-build', description: 'Implementing the core resume parsing and generation logic.' },
-    { id: '07', title: 'Testing & QA', path: '/rb/07-test', description: 'Ensuring output quality and edge case handling.' },
-    { id: '08', title: 'Final Ship', path: '/rb/08-ship', description: 'Deploying the final build and preparing for production.' },
-    { id: 'proof', title: 'Project Verification', path: '/rb/proof', description: 'Consolidation of artifacts and final submission.' }
-];
-
-// --- State Management ---
-const State = {
-    getArtifact(id) {
-        return localStorage.getItem(`rb_step_${id}_artifact`) === 'true';
-    },
-    setArtifact(id, val) {
-        localStorage.setItem(`rb_step_${id}_artifact`, val);
-        this.sync();
-    },
-    getCurrentStepIdx() {
-        const hash = window.location.hash.replace('#', '') || '/rb/01-problem';
-        return PROJECT_STEPS.findIndex(s => s.path === hash);
-    },
-    canAccessStep(idx) {
-        if (idx === 0) return true;
-        // Check if previous step is completed
-        return this.getArtifact(PROJECT_STEPS[idx - 1].id);
-    },
-    sync() {
-        render();
-    }
+// --- Resume State ---
+let resumeData = {
+    personal: { name: '', email: '', phone: '', location: '' },
+    summary: '',
+    education: [],
+    experience: [],
+    projects: [],
+    skills: '',
+    links: { github: '', linkedin: '' }
 };
 
-// --- Routing & Rendering ---
+// --- Sample Data ---
+const SAMPLE_DATA = {
+    personal: { name: 'John Doe', email: 'john.doe@example.com', phone: '+1 (555) 0123', location: 'New York, NY' },
+    summary: 'Experienced Software Engineer with a passion for building scalable web applications and AI-driven solutions.',
+    education: [
+        { institution: 'Tech University', degree: 'B.S. in Computer Science', date: '2016 - 2020' }
+    ],
+    experience: [
+        { company: 'InnvoateSoft', role: 'Senior Developer', date: '2021 - Present', description: 'Leading frontend team for the next-gen AI platform.' },
+        { company: 'GlobalDev', role: 'Junior Engineer', date: '2020 - 2021', description: 'Developed core features for the enterprise cloud dashboard.' }
+    ],
+    projects: [
+        { name: 'AI Resume Builder', date: '2023', description: 'Built an AI-driven resume builder with premium layouts.' }
+    ],
+    skills: 'JavaScript, TypeScript, React, Node.js, Python, AWS, Docker',
+    links: { github: 'github.com/johndoe', linkedin: 'linkedin.com/in/johndoe' }
+};
+
+// --- Helper Functions ---
+function updateLivePreview() {
+    const previewContainer = document.getElementById('resume-preview-live');
+    if (!previewContainer) return;
+
+    previewContainer.innerHTML = generateResumeHTML(resumeData);
+}
+
+function handleInput(section, field, value) {
+    if (field) {
+        resumeData[section][field] = value;
+    } else {
+        resumeData[section] = value;
+    }
+    updateLivePreview();
+}
+
+function loadSampleData() {
+    resumeData = JSON.parse(JSON.stringify(SAMPLE_DATA));
+    navigate('/builder');
+    render();
+}
+
+// --- Component Templates ---
+function generateResumeHTML(data) {
+    const educationHTML = data.education.map(ed => `
+        <div class="resume-item">
+            <div class="resume-item-header"><span>${ed.institution || ''}</span><span>${ed.date || ''}</span></div>
+            <div class="resume-item-sub">${ed.degree || ''}</div>
+        </div>
+    `).join('');
+
+    const experienceHTML = data.experience.map(exp => `
+        <div class="resume-item">
+            <div class="resume-item-header"><span>${exp.company || ''}</span><span>${exp.date || ''}</span></div>
+            <div class="resume-item-sub">${exp.role || ''}</div>
+            <p class="resume-item-desc">${exp.description || ''}</p>
+        </div>
+    `).join('');
+
+    const projectsHTML = data.projects.map(proj => `
+        <div class="resume-item">
+            <div class="resume-item-header"><span>${proj.name || ''}</span><span>${proj.date || ''}</span></div>
+            <p class="resume-item-desc">${proj.description || ''}</p>
+        </div>
+    `).join('');
+
+    return `
+        <div class="resume-paper">
+            <header>
+                <h1>${data.personal.name || 'Your Name'}</h1>
+                <div class="resume-contact">
+                    <span>${data.personal.email || ''}</span>
+                    <span>${data.personal.phone || ''}</span>
+                    <span>${data.personal.location || ''}</span>
+                </div>
+                <div class="resume-contact" style="margin-top: 4px;">
+                    <span>${data.links.github || ''}</span>
+                    <span>${data.links.linkedin || ''}</span>
+                </div>
+            </header>
+
+            ${data.summary ? `
+                <section>
+                    <h2>Professional Summary</h2>
+                    <p class="resume-item-desc">${data.summary}</p>
+                </section>
+            ` : ''}
+
+            ${data.experience.length > 0 ? `
+                <section>
+                    <h2>Experience</h2>
+                    <div class="resume-section-content">${experienceHTML}</div>
+                </section>
+            ` : ''}
+
+            ${data.education.length > 0 ? `
+                <section>
+                    <h2>Education</h2>
+                    <div class="resume-section-content">${educationHTML}</div>
+                </section>
+            ` : ''}
+
+            ${data.projects.length > 0 ? `
+                <section>
+                    <h2>Projects</h2>
+                    <div class="resume-section-content">${projectsHTML}</div>
+                </section>
+            ` : ''}
+
+            ${data.skills ? `
+                <section>
+                    <h2>Skills</h2>
+                    <p class="resume-item-desc">${data.skills}</p>
+                </section>
+            ` : ''}
+        </div>
+    `;
+}
+
+// --- Dynamic Route Handlers ---
+const views = {
+    '/': () => `
+        <div class="hero view">
+            <h1>Build a Resume That Gets Read.</h1>
+            <p>Premium, minimal, and professional designs that help you stand out to hiring managers and pass through ATS.</p>
+            <button class="btn-primary" onclick="navigate('/builder')">Start Building</button>
+        </div>
+    `,
+    '/builder': () => `
+        <div class="builder-layout view">
+            <div class="form-panel">
+                <div class="builder-header">
+                    <h2>Edit Resume</h2>
+                    <button class="btn-secondary" onclick="loadSampleData()">Load Sample Data</button>
+                </div>
+                
+                <div class="form-section">
+                    <h3>Personal Info</h3>
+                    <div class="input-group">
+                        <label>Name</label>
+                        <input type="text" class="input-field" value="${resumeData.personal.name}" oninput="handleInput('personal', 'name', this.value)">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="input-group"><label>Email</label><input type="text" class="input-field" value="${resumeData.personal.email}" oninput="handleInput('personal', 'email', this.value)"></div>
+                        <div class="input-group"><label>Phone</label><input type="text" class="input-field" value="${resumeData.personal.phone}" oninput="handleInput('personal', 'phone', this.value)"></div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>Professional Summary</h3>
+                    <textarea class="input-field" oninput="handleInput('summary', null, this.value)">${resumeData.summary}</textarea>
+                </div>
+
+                <div class="form-section">
+                    <h3>Experience</h3>
+                    <div class="dynamic-list" id="experience-list">
+                        ${resumeData.experience.map((exp, i) => `
+                            <div class="list-item">
+                                <div class="input-group"><label>Company</label><input type="text" class="input-field" value="${exp.company}" oninput="resumeData.experience[${i}].company=this.value; updateLivePreview()"></div>
+                                <div class="input-group" style="margin-top:0.5rem;"><label>Role</label><input type="text" class="input-field" value="${exp.role}" oninput="resumeData.experience[${i}].role=this.value; updateLivePreview()"></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn-add" onclick="resumeData.experience.push({company:'', role:'', date:'', description:''}); render()">+ Add Experience</button>
+                </div>
+
+                <div class="form-section">
+                    <h3>Skills</h3>
+                    <input type="text" class="input-field" placeholder="JavaScript, Python, React..." value="${resumeData.skills}" oninput="handleInput('skills', null, this.value)">
+                </div>
+            </div>
+
+            <div class="preview-panel">
+                <div id="resume-preview-live" style="width: 100%;">
+                    ${generateResumeHTML(resumeData)}
+                </div>
+            </div>
+        </div>
+    `,
+    '/preview': () => `
+        <div class="view" style="display: flex; justify-content: center; background: #fff; padding: 4rem;">
+            ${generateResumeHTML(resumeData)}
+        </div>
+    `,
+    '/proof': () => `
+        <div class="view" style="text-align: center; padding: 4rem;">
+            <h2>Project Proof</h2>
+            <p style="color: grey; margin-top: 1rem;">Placeholder for screenshots and build artifacts.</p>
+        </div>
+    `
+};
+
+// --- Routing Engine ---
 function navigate(path) {
     window.location.hash = path;
 }
 
 function render() {
-    const idx = State.getCurrentStepIdx();
-    const currentStep = PROJECT_STEPS[idx] || PROJECT_STEPS[0];
-    const isProofPage = currentStep.id === 'proof';
+    const hash = window.location.hash.split('?')[0] || '#/';
+    const path = hash.replace('#', '');
+    const mainContent = document.getElementById('main-content');
 
-    // Update Top Bar
-    const stepLabel = isProofPage ? 'Final Submission' : `Step ${idx + 1} of 8`;
-    document.getElementById('step-counter').innerText = `Project 3 — ${stepLabel}`;
-    
-    // Update Context Header
-    document.getElementById('page-title').innerText = `${currentStep.id === 'proof' ? '' : currentStep.id + ' — '}${currentStep.title}`;
-    const isCompleted = State.getArtifact(currentStep.id);
-    const badge = document.getElementById('status-badge');
-    badge.innerText = isCompleted ? 'Completed' : 'In-Progress';
-    badge.className = `badge-status ${isCompleted ? 'active' : ''}`;
+    // Update Nav Activity
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.toggle('active', link.dataset.route === path);
+    });
 
-    // Update Workspace
-    const workspace = document.getElementById('main-workspace');
-    const buildPanel = document.getElementById('build-panel');
-    
-    if (isProofPage) {
-        renderProofPage(workspace);
-        buildPanel.classList.add('hidden');
+    if (views[path]) {
+        mainContent.innerHTML = views[path]();
     } else {
-        renderStepWorkspace(workspace, currentStep);
-        buildPanel.classList.remove('hidden');
-        document.getElementById('lovable-copy-area').value = `// Prompt for Lovable: ${currentStep.title}\n\nBuild the ${currentStep.title} module for the AI Resume Builder project.\nObjectives:\n1. ${currentStep.description}\n2. Ensure premium aesthetic following the design system.\n3. Implement necessary API connectors.`;
+        mainContent.innerHTML = views['/']();
     }
-
-    // Update Footer Nav
-    const btnPrev = document.getElementById('btn-prev');
-    const btnNext = document.getElementById('btn-next');
-    
-    btnPrev.disabled = idx === 0;
-    btnNext.disabled = isProofPage || !isCompleted;
-    
-    btnPrev.onclick = () => {
-        if (idx > 0) navigate(PROJECT_STEPS[idx - 1].path);
-    };
-    btnNext.onclick = () => {
-        if (idx < PROJECT_STEPS.length - 1) {
-            // Check gating if not navigating to proof
-            if (State.getArtifact(currentStep.id)) {
-                navigate(PROJECT_STEPS[idx + 1].path);
-            }
-        }
-    };
 
     lucide.createIcons();
+    updateLivePreview();
 }
 
-function renderStepWorkspace(container, step) {
-    container.innerHTML = `
-        <div class="view">
-            <h2 style="font-size: 2rem; margin-bottom: 2rem; color: var(--color-primary);">${step.title}</h2>
-            <div style="background: var(--color-primary-light); padding: 2rem; border-radius: var(--radius-lg); border: 1px dashed var(--color-border); margin-bottom: 2rem;">
-                <p style="color: var(--color-text-secondary); line-height: 1.6;">${step.description}</p>
-                <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-                    <button class="btn-outline" style="background: white;">
-                        <i data-lucide="file-text" size="18"></i>
-                        View Documentation
-                    </button>
-                    <button class="btn-outline" style="background: white;">
-                        <i data-lucide="video" size="18"></i>
-                        Watch Tutorial
-                    </button>
-                </div>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <h3 style="font-size: 1.125rem; font-weight: 700;">Requirements</h3>
-                <ul style="list-style: none; display: flex; flex-direction: column; gap: 0.5rem;">
-                    <li style="display: flex; align-items: center; gap: 0.5rem; color: var(--color-text-secondary);">
-                        <i data-lucide="check-square" size="16" style="color: var(--color-accent);"></i>
-                        Complete the ${step.title} draft.
-                    </li>
-                    <li style="display: flex; align-items: center; gap: 0.5rem; color: var(--color-text-secondary);">
-                        <i data-lucide="check-square" size="16" style="color: var(--color-accent);"></i>
-                        Sync with Lovable for real-time preview.
-                    </li>
-                    <li style="display: flex; align-items: center; gap: 0.5rem; color: var(--color-text-secondary);">
-                        <i data-lucide="check-square" size="16" style="color: var(--color-accent);"></i>
-                        Upload evidence (screenshot or link).
-                    </li>
-                </ul>
-            </div>
-        </div>
-    `;
-}
-
-function renderProofPage(container) {
-    const statuses = PROJECT_STEPS.slice(0, 8).map(s => {
-        const done = State.getArtifact(s.id);
-        return `
-            <div class="step-card ${done ? 'completed' : ''}">
-                <div class="status">${done ? 'Verified' : 'Pending'}</div>
-                <div class="title">${s.id} — ${s.title}</div>
-            </div>
-        `;
-    }).join('');
-
-    container.innerHTML = `
-        <div class="view" style="max-width: 900px; margin: 0 auto;">
-            <h2 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Final Proof of Build</h2>
-            <p style="color: var(--color-text-secondary); margin-bottom: 2.5rem;">Verify all steps and provide deployment links for final submission.</p>
-            
-            <div class="proof-grid">
-                ${statuses}
-            </div>
-            
-            <div class="links-card">
-                <h3 style="font-size: 1.25rem;">Submission Details</h3>
-                <div class="input-group">
-                    <label>Lovable Link</label>
-                    <input type="text" id="link-lovable" placeholder="https://lovable.dev/projects/...">
-                </div>
-                <div class="input-group">
-                    <label>GitHub Repository</label>
-                    <input type="text" id="link-github" placeholder="https://github.com/user/repo">
-                </div>
-                <div class="input-group">
-                    <label>Deployment URL</label>
-                    <input type="text" id="link-deploy" placeholder="https://project-deployment.vercel.app">
-                </div>
-                
-                <button class="btn-primary" style="margin-top: 1rem; width: 100%; height: 56px; font-size: 1.125rem;" id="btn-final-copy">
-                    <i data-lucide="send" size="20"></i>
-                    Copy Final Submission
-                </button>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('btn-final-copy').onclick = () => {
-        const linkL = document.getElementById('link-lovable').value;
-        const linkG = document.getElementById('link-github').value;
-        const linkD = document.getElementById('link-deploy').value;
-        const text = `PROJECT SUBMISSION\n\nLovable: ${linkL}\nGitHub: ${linkG}\nDeploy: ${linkD}\n\nSteps Completed: 8/8`;
-        navigator.clipboard.writeText(text);
-        alert('Submission copied to clipboard!');
-    };
-}
-
-// --- Event Listeners ---
 window.addEventListener('hashchange', render);
+window.navigate = navigate;
+window.handleInput = handleInput;
+window.loadSampleData = loadSampleData;
+window.updateLivePreview = updateLivePreview;
+window.render = render;
 
-document.getElementById('btn-worked').onclick = () => {
-    const idx = State.getCurrentStepIdx();
-    const currentStep = PROJECT_STEPS[idx];
-    if (currentStep && currentStep.id !== 'proof') {
-        State.setArtifact(currentStep.id, 'true');
-        alert(`${currentStep.title} artifact uploaded successfully.`);
-    }
-};
-
-document.getElementById('btn-error').onclick = () => {
-    alert('Error logged. Check browser console for details.');
-};
-
-document.getElementById('btn-copy').onclick = () => {
-    const content = document.getElementById('lovable-copy-area').value;
-    navigator.clipboard.writeText(content);
-    alert('Copied to clipboard!');
-};
-
-document.getElementById('btn-open-lovable').onclick = () => {
-    window.open('https://lovable.dev', '_blank');
-};
-
-// Initial Render
+// Initial Draw
 if (!window.location.hash) {
-    navigate('/rb/01-problem');
+    window.location.hash = '#/';
 } else {
     render();
 }
