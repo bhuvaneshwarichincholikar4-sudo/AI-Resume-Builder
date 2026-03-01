@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Builder — Build Track</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div id="app" class="app-shell">
+        <!-- Top Bar -->
+        <header class="top-bar">
+            <div class="left">
+                <i data-lucide="layout-grid" style="color: var(--color-accent);"></i>
+                <span>AI Resume Builder</span>
+            </div>
+            <div class="center" id="step-counter">
+                Project 3 — Step 1 of 8
+            </div>
+            <div class="right">
+                <span class="badge-status active">Development</span>
+                <i data-lucide="bell" size="18" style="color: var(--color-text-muted);"></i>
+                <div style="width: 32px; height: 32px; background: var(--color-primary-light); border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;">
+                    JD
+                </div>
+            </div>
+        </header>
+
+        <!-- Context Header -->
+        <header class="context-header">
+            <h1 id="page-title">01 — Problem Statement</h1>
+            <div id="status-badge" class="badge-status">In-Progress</div>
+        </header>
+
+        <!-- Workspace Container -->
+        <main class="workspace-container">
+            <!-- Main Workspace (70%) -->
+            <section class="main-workspace" id="main-workspace">
+                <!-- Content will be injected here -->
+            </section>
+
+            <!-- Secondary Build Panel (30%) -->
+            <aside class="build-panel" id="build-panel">
+                <div class="build-section">
+                    <h2 class="build-section-title">Copy This Into Lovable</h2>
+                    <textarea class="copy-textarea" id="lovable-copy-area" readonly></textarea>
+                </div>
+                
+                <div class="build-actions">
+                    <button class="btn-primary" id="btn-copy">
+                        <i data-lucide="copy" size="18"></i>
+                        Copy Content
+                    </button>
+                    <button class="btn-outline" id="btn-open-lovable">
+                        <i data-lucide="external-link" size="18"></i>
+                        Build in Lovable
+                    </button>
+                    
+                    <div class="status-actions">
+                        <button class="btn-status worked" id="btn-worked">
+                            <i data-lucide="check-circle" size="14"></i>
+                            It Worked
+                        </button>
+                        <button class="btn-status error" id="btn-error">
+                            <i data-lucide="alert-triangle" size="14"></i>
+                            Error
+                        </button>
+                    </div>
+                </div>
+
+                <div class="build-section">
+                    <h2 class="build-section-title">Evidence</h2>
+                    <button class="btn-outline" style="width: 100%; border-style: dashed; font-size: 0.875rem;">
+                        <i data-lucide="image" size="18"></i>
+                        Add Screenshot
+                    </button>
+                </div>
+            </aside>
+        </main>
+
+        <!-- Proof Footer -->
+        <footer class="proof-footer">
+            <div class="left">
+                <div style="display: flex; align-items: center; gap: 8px; color: var(--color-text-secondary); font-size: 0.875rem;">
+                    <i data-lucide="shield-check" size="18" style="color: var(--color-success);"></i>
+                    Syncing Artifacts...
+                </div>
+            </div>
+            
+            <div class="step-nav">
+                <button class="btn-nav" id="btn-prev" disabled>
+                    <i data-lucide="chevron-left" size="18"></i>
+                    Back
+                </button>
+                <div style="height: 24px; width: 1px; background: var(--color-border); margin: 0 8px;"></div>
+                <button class="btn-nav" id="btn-next" disabled>
+                    Next
+                    <i data-lucide="chevron-right" size="18"></i>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <script src="scripts/app.js"></script>
+</body>
+</html>
