@@ -36,7 +36,7 @@ if (savedData) {
     }
 }
 
-const ACTION_VERBS = ['Built', 'Developed', 'Designed', 'Implemented', 'Led', 'Improved', 'Created', 'Optimized', 'Automated'];
+const ACTION_VERBS = ['built', 'led', 'designed', 'improved', 'developed', 'implemented', 'created', 'optimized', 'automated', 'managed', 'delivered', 'launched', 'increased', 'reduced', 'achieved', 'spearheaded', 'orchestrated', 'streamlined', 'engineered', 'architected'];
 
 // --- Sample Data ---
 const SAMPLE_DATA = {
@@ -248,55 +248,144 @@ function getBulletGuidance(text) {
     return tips;
 }
 
-// --- ATS Scoring Engine ---
+// --- ATS Scoring Engine (deterministic, no AI) ---
 function calculateATSScore() {
     let score = 0;
-    const { summary, projects, experience, skills, links, education } = resumeData;
-    const summaryWords = summary.trim().split(/\s+/).filter(w => w.length > 0).length;
-    if (summaryWords >= 40 && summaryWords <= 120) score += 15;
-    if (projects.length >= 2) score += 10;
-    if (experience.length >= 1) score += 10;
+    const { personal, summary, projects, experience, skills, links, education } = resumeData;
 
-    // Skills count across categories
+    // +10 if name provided
+    if (personal.name && personal.name.trim()) score += 10;
+
+    // +10 if email provided
+    if (personal.email && personal.email.trim()) score += 10;
+
+    // +10 if summary > 50 chars
+    if (summary && summary.trim().length > 50) score += 10;
+
+    // +15 if at least 1 experience entry with bullets (description)
+    if (experience.length >= 1 && experience.some(exp => exp.description && exp.description.trim().length > 0)) score += 15;
+
+    // +10 if at least 1 education entry
+    if (education.length >= 1) score += 10;
+
+    // +10 if at least 5 skills added
     const allSkills = [...skills.technical, ...skills.soft, ...skills.tools];
-    if (allSkills.length >= 8) score += 10;
+    if (allSkills.length >= 5) score += 10;
 
-    if ((links.github && links.github.trim()) || (links.linkedin && links.linkedin.trim())) score += 10;
-    const hasNumbers = [...experience, ...projects].some(item => /\d+|%/.test(item.description || ''));
-    if (hasNumbers) score += 15;
-    const edComplete = education.length > 0 && education.every(ed => ed.institution && ed.institution.trim() && ed.degree && ed.degree.trim() && ed.date && ed.date.trim());
-    if (edComplete) score += 10;
+    // +10 if at least 1 project added
+    if (projects.length >= 1) score += 10;
+
+    // +5 if phone provided
+    if (personal.phone && personal.phone.trim()) score += 5;
+
+    // +5 if LinkedIn provided
+    if (links.linkedin && links.linkedin.trim()) score += 5;
+
+    // +5 if GitHub provided
+    if (links.github && links.github.trim()) score += 5;
+
+    // +10 if summary contains action verbs
+    if (summary && summary.trim()) {
+        const summaryLower = summary.toLowerCase();
+        const hasActionVerb = ACTION_VERBS.some(verb => summaryLower.includes(verb));
+        if (hasActionVerb) score += 10;
+    }
+
     return Math.min(score, 100);
 }
 
-function getTopImprovements() {
-    const improvements = [];
-    const { summary, projects, experience, skills } = resumeData;
-    const summaryWords = summary.trim().split(/\s+/).filter(w => w.length > 0).length;
+function getATSBreakdown() {
+    const missing = [];
+    const { personal, summary, projects, experience, skills, links, education } = resumeData;
+
+    if (!personal.name || !personal.name.trim()) missing.push({ text: 'Add your name', points: 10 });
+    if (!personal.email || !personal.email.trim()) missing.push({ text: 'Add your email address', points: 10 });
+    if (!summary || summary.trim().length <= 50) missing.push({ text: 'Add a professional summary (>50 characters)', points: 10 });
+    if (!(experience.length >= 1 && experience.some(exp => exp.description && exp.description.trim().length > 0))) missing.push({ text: 'Add at least 1 experience with description', points: 15 });
+    if (education.length < 1) missing.push({ text: 'Add at least 1 education entry', points: 10 });
     const allSkills = [...skills.technical, ...skills.soft, ...skills.tools];
+    if (allSkills.length < 5) missing.push({ text: `Add at least 5 skills (${allSkills.length}/5)`, points: 10 });
+    if (projects.length < 1) missing.push({ text: 'Add at least 1 project', points: 10 });
+    if (!personal.phone || !personal.phone.trim()) missing.push({ text: 'Add your phone number', points: 5 });
+    if (!links.linkedin || !links.linkedin.trim()) missing.push({ text: 'Add your LinkedIn profile', points: 5 });
+    if (!links.github || !links.github.trim()) missing.push({ text: 'Add your GitHub profile', points: 5 });
+    if (summary && summary.trim()) {
+        const summaryLower = summary.toLowerCase();
+        const hasActionVerb = ACTION_VERBS.some(verb => summaryLower.includes(verb));
+        if (!hasActionVerb) missing.push({ text: 'Use action verbs in summary (built, led, designed...)', points: 10 });
+    } else {
+        missing.push({ text: 'Use action verbs in summary (built, led, designed...)', points: 10 });
+    }
 
-    if (projects.length < 2) improvements.push("Add at least 2 projects.");
-    const hasNumbers = [...experience, ...projects].some(item => /\d+|%/.test(item.description || ''));
-    if (!hasNumbers) improvements.push("Add measurable impact (numbers).");
-    if (summaryWords < 40) improvements.push("Expand summary to 40+ words.");
-    if (allSkills.length < 8) improvements.push("Add at least 8 skills.");
-    if (experience.length === 0) improvements.push("Add internship/project work.");
+    return missing;
+}
 
-    return improvements.slice(0, 3);
+function getScoreLabel(score) {
+    if (score <= 40) return { label: 'Needs Work', color: '#ef4444' };
+    if (score <= 70) return { label: 'Getting There', color: '#f59e0b' };
+    return { label: 'Strong Resume', color: '#10b981' };
+}
+
+function renderCircularProgress(score) {
+    const { label, color } = getScoreLabel(score);
+    const radius = 54;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (circumference * score / 100);
+
+    return `
+        <div class="ats-circular-score">
+            <svg class="circular-progress" width="140" height="140" viewBox="0 0 120 120">
+                <circle class="progress-bg" cx="60" cy="60" r="${radius}" fill="none" stroke="#e2e8f0" stroke-width="10"/>
+                <circle class="progress-fill" cx="60" cy="60" r="${radius}" fill="none" stroke="${color}" stroke-width="10"
+                    stroke-linecap="round" stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+                    transform="rotate(-90 60 60)" style="transition: stroke-dashoffset 0.6s ease;"/>
+            </svg>
+            <div class="circular-score-text">
+                <span class="circular-score-value" style="color: ${color}">${score}</span>
+                <span class="circular-score-max">/100</span>
+            </div>
+            <div class="circular-score-label" style="color: ${color}">${label}</div>
+        </div>
+    `;
+}
+
+function renderImprovementSuggestions() {
+    const missing = getATSBreakdown();
+    if (missing.length === 0) return '<p class="all-good-msg">Your resume covers all ATS criteria!</p>';
+    return `
+        <div class="improvement-suggestions">
+            <h3 class="suggestions-heading">Improve Your Score</h3>
+            <ul class="suggestions-detail-list">
+                ${missing.map(item => `<li><span class="suggestion-text">${item.text}</span><span class="suggestion-points">+${item.points} pts</span></li>`).join('')}
+            </ul>
+        </div>
+    `;
 }
 
 function updateScoreUI() {
     const scoreVal = calculateATSScore();
+    const { color } = getScoreLabel(scoreVal);
+
+    // Update builder sidebar score card
     const scoreMeter = document.getElementById('score-meter-fill');
     const scoreText = document.getElementById('score-value');
     const improvementList = document.getElementById('improvement-list');
 
-    if (scoreMeter) scoreMeter.style.width = `${scoreVal}%`;
+    if (scoreMeter) {
+        scoreMeter.style.width = `${scoreVal}%`;
+        scoreMeter.style.background = color;
+    }
     if (scoreText) scoreText.innerText = scoreVal;
 
     if (improvementList) {
-        const top3 = getTopImprovements();
-        improvementList.innerHTML = top3.map(s => `<li>${s}</li>`).join('');
+        const missing = getATSBreakdown();
+        improvementList.innerHTML = missing.slice(0, 3).map(s => `<li>${s.text} <span style="color:${color};font-weight:700;">(+${s.points})</span></li>`).join('');
+    }
+
+    // Update preview page circular score
+    const previewScoreContainer = document.getElementById('preview-ats-score');
+    if (previewScoreContainer) {
+        previewScoreContainer.innerHTML = renderCircularProgress(scoreVal) + renderImprovementSuggestions();
     }
 }
 
@@ -595,21 +684,31 @@ const views = {
             </div>
         </div>
     `},
-    '/preview': () => `
-        <div class="view" style="display: flex; flex-direction: column; align-items: center; background: #fff; padding: 2rem;">
+    '/preview': () => {
+        const score = calculateATSScore();
+        return `
+        <div class="view preview-view">
             ${getValidationWarning()}
-            <div class="export-actions">
-                <button class="btn-primary" onclick="printResume()">Print / Save as PDF</button>
-                <button class="btn-secondary" onclick="copyAsText()">Copy Resume as Text</button>
-            </div>
-            <div class="template-tabs" style="width: 300px; margin-bottom: 2rem;">
-                <button class="template-tab ${activeTemplate === 'classic' ? 'active' : ''}" onclick="setTemplate('classic')">Classic</button>
-                <button class="template-tab ${activeTemplate === 'modern' ? 'active' : ''}" onclick="setTemplate('modern')">Modern</button>
-                <button class="template-tab ${activeTemplate === 'minimal' ? 'active' : ''}" onclick="setTemplate('minimal')">Minimal</button>
+            <div class="preview-top-bar">
+                <div id="preview-ats-score" class="preview-score-panel">
+                    ${renderCircularProgress(score)}
+                    ${renderImprovementSuggestions()}
+                </div>
+                <div class="preview-actions-panel">
+                    <div class="export-actions">
+                        <button class="btn-primary" onclick="printResume()"><i data-lucide="printer" size="16"></i> Print / Save as PDF</button>
+                        <button class="btn-secondary" onclick="copyAsText()"><i data-lucide="copy" size="16"></i> Copy as Text</button>
+                    </div>
+                    <div class="template-tabs" style="width: 300px;">
+                        <button class="template-tab ${activeTemplate === 'classic' ? 'active' : ''}" onclick="setTemplate('classic')">Classic</button>
+                        <button class="template-tab ${activeTemplate === 'modern' ? 'active' : ''}" onclick="setTemplate('modern')">Modern</button>
+                        <button class="template-tab ${activeTemplate === 'minimal' ? 'active' : ''}" onclick="setTemplate('minimal')">Minimal</button>
+                    </div>
+                </div>
             </div>
             ${generateResumeHTML(resumeData, activeTemplate)}
         </div>
-    `,
+    `},
     '/proof': () => `
         <div class="view" style="text-align: center; padding: 4rem;">
             <h2>Project Proof</h2>
