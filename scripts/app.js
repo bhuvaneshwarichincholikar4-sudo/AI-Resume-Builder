@@ -5,7 +5,7 @@ let resumeData = {
     education: [],
     experience: [],
     projects: [],
-    skills: '',
+    skills: { technical: [], soft: [], tools: [] },
     links: { github: '', linkedin: '' }
 };
 
@@ -15,7 +15,20 @@ let activeTemplate = localStorage.getItem('resumeTemplateChoice') || 'classic';
 const savedData = localStorage.getItem('resumeBuilderData');
 if (savedData) {
     try {
-        resumeData = JSON.parse(savedData);
+        const parsed = JSON.parse(savedData);
+        // Migration check for skills
+        if (typeof parsed.skills === 'string') {
+            parsed.skills = { technical: parsed.skills ? parsed.skills.split(',').map(s => s.trim()) : [], soft: [], tools: [] };
+        }
+        // Migration check for project tech stacks
+        if (parsed.projects) {
+            parsed.projects = parsed.projects.map(p => ({
+                ...p,
+                techStack: p.techStack || [],
+                isOpen: p.isOpen !== undefined ? p.isOpen : true
+            }));
+        }
+        resumeData = { ...resumeData, ...parsed };
     } catch (e) {
         console.error("Failed to parse saved data", e);
     }
@@ -35,10 +48,14 @@ const SAMPLE_DATA = {
         { company: 'GlobalDev', role: 'Junior Engineer', date: '2020 - 2021', description: 'Developed core features for the enterprise cloud dashboard with 99.9% uptime.' }
     ],
     projects: [
-        { name: 'AI Resume Builder', date: '2023', description: 'Built an AI-driven resume builder with 10k monthly active users.' },
-        { name: 'Portfolio Engine', date: '2022', description: 'Optimized open source tool for developers.' }
+        { title: 'AI Resume Builder', description: 'Built an AI-driven resume builder with 10k monthly active users.', techStack: ['React', 'Node.js', 'PostgreSQL'], date: '2023', liveUrl: '', githubUrl: '', isOpen: false },
+        { title: 'Portfolio Engine', description: 'Optimized open source tool for developers.', techStack: ['TypeScript', 'GraphQL'], date: '2022', liveUrl: '', githubUrl: '', isOpen: false }
     ],
-    skills: 'JavaScript, TypeScript, React, Node.js, Python, AWS, Docker, Kubernetes',
+    skills: {
+        technical: ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python'],
+        soft: ['Team Leadership', 'Problem Solving'],
+        tools: ['AWS', 'Docker', 'Kubernetes']
+    },
     links: { github: 'github.com/johndoe', linkedin: 'linkedin.com/in/johndoe' }
 };
 
@@ -107,11 +124,14 @@ function copyAsText() {
     if (d.projects.length > 0) {
         text += `\nPROJECTS\n`;
         d.projects.forEach(p => {
-            text += `${p.name} (${p.date || ''})\n${p.description}\n\n`;
+            text += `${p.title} (${p.date || ''})\n${p.description}\nTech: ${p.techStack.join(', ')}\n\n`;
         });
     }
 
-    text += `\nSKILLS\n${d.skills || ''}\n`;
+    text += `\nSKILLS\n`;
+    text += `Technical: ${d.skills.technical.join(', ')}\n`;
+    text += `Soft: ${d.skills.soft.join(', ')}\n`;
+    text += `Tools: ${d.skills.tools.join(', ')}\n`;
 
     navigator.clipboard.writeText(text).then(() => {
         alert("Resume copied as plain text!");
@@ -123,6 +143,78 @@ function getValidationWarning() {
         return `<div class="validation-warning"><i data-lucide="alert-triangle" size="18"></i> Your resume may look incomplete. Please add your name and at least one experience or project.</div>`;
     }
     return '';
+}
+
+// --- Skills Logic ---
+function addSkill(category, skill) {
+    if (!skill || !skill.trim()) return;
+    if (!resumeData.skills[category].includes(skill.trim())) {
+        resumeData.skills[category].push(skill.trim());
+        saveToLocalStorage();
+        render();
+    }
+}
+
+function removeSkill(category, index) {
+    resumeData.skills[category].splice(index, 1);
+    saveToLocalStorage();
+    render();
+}
+
+async function suggestSkills() {
+    const btn = document.querySelector('.btn-suggest');
+    btn.classList.add('loading');
+    btn.innerHTML = `<i data-lucide="loader-2" class="spinner" size="14"></i> Suggesting...`;
+    lucide.createIcons();
+
+    await new Promise(r => setTimeout(r, 1000));
+
+    const technical = ["TypeScript", "React", "Node.js", "PostgreSQL", "GraphQL"];
+    const soft = ["Team Leadership", "Problem Solving"];
+    const tools = ["Git", "Docker", "AWS"];
+
+    technical.forEach(s => addSkill('technical', s));
+    soft.forEach(s => addSkill('soft', s));
+    tools.forEach(s => addSkill('tools', s));
+
+    saveToLocalStorage();
+    render();
+}
+
+// --- Projects Logic ---
+function addProject() {
+    resumeData.projects.push({
+        title: '',
+        description: '',
+        techStack: [],
+        date: '',
+        liveUrl: '',
+        githubUrl: '',
+        isOpen: true
+    });
+    saveToLocalStorage();
+    render();
+}
+
+function toggleProject(index) {
+    resumeData.projects[index].isOpen = !resumeData.projects[index].isOpen;
+    saveToLocalStorage();
+    render();
+}
+
+function addProjectTech(index, tech) {
+    if (!tech || !tech.trim()) return;
+    if (!resumeData.projects[index].techStack.includes(tech.trim())) {
+        resumeData.projects[index].techStack.push(tech.trim());
+        saveToLocalStorage();
+        render();
+    }
+}
+
+function removeProjectTech(pIndex, tIndex) {
+    resumeData.projects[pIndex].techStack.splice(tIndex, 1);
+    saveToLocalStorage();
+    render();
 }
 
 // --- Guidance Logic ---
@@ -146,8 +238,11 @@ function calculateATSScore() {
     if (summaryWords >= 40 && summaryWords <= 120) score += 15;
     if (projects.length >= 2) score += 10;
     if (experience.length >= 1) score += 10;
-    const skillsList = (skills || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
-    if (skillsList.length >= 8) score += 10;
+
+    // Skills count across categories
+    const allSkills = [...skills.technical, ...skills.soft, ...skills.tools];
+    if (allSkills.length >= 8) score += 10;
+
     if ((links.github && links.github.trim()) || (links.linkedin && links.linkedin.trim())) score += 10;
     const hasNumbers = [...experience, ...projects].some(item => /\d+|%/.test(item.description || ''));
     if (hasNumbers) score += 15;
@@ -160,12 +255,13 @@ function getTopImprovements() {
     const improvements = [];
     const { summary, projects, experience, skills } = resumeData;
     const summaryWords = summary.trim().split(/\s+/).filter(w => w.length > 0).length;
+    const allSkills = [...skills.technical, ...skills.soft, ...skills.tools];
 
     if (projects.length < 2) improvements.push("Add at least 2 projects.");
     const hasNumbers = [...experience, ...projects].some(item => /\d+|%/.test(item.description || ''));
     if (!hasNumbers) improvements.push("Add measurable impact (numbers).");
     if (summaryWords < 40) improvements.push("Expand summary to 40+ words.");
-    if (skills.split(',').filter(s => s.trim()).length < 8) improvements.push("Add at least 8 skills.");
+    if (allSkills.length < 8) improvements.push("Add at least 8 skills.");
     if (experience.length === 0) improvements.push("Add internship/project work.");
 
     return improvements.slice(0, 3);
@@ -203,12 +299,30 @@ function generateResumeHTML(data, template = 'classic') {
         </div>
     `).join('');
 
-    const projectsHTML = data.projects.filter(proj => proj.name).map(proj => `
+    const projectsHTML = data.projects.filter(proj => proj.title).map(proj => `
         <div class="resume-item">
-            <div class="resume-item-header"><span>${proj.name || ''}</span><span>${proj.date || ''}</span></div>
+            <div class="resume-item-header">
+                <strong>${proj.title || ''}</strong>
+                <span>${proj.date || ''}</span>
+            </div>
             <p class="resume-item-desc">${proj.description || ''}</p>
+            <div style="margin-top: 4px;">
+                ${proj.techStack.map(t => `<span class="preview-pill">${t}</span>`).join('')}
+            </div>
+            <div class="project-links">
+                ${proj.githubUrl ? `<a href="${proj.githubUrl}" class="project-link"><i data-lucide="github" size="12"></i> Code</a>` : ''}
+                ${proj.liveUrl ? `<a href="${proj.liveUrl}" class="project-link"><i data-lucide="external-link" size="12"></i> Live</a>` : ''}
+            </div>
         </div>
     `).join('');
+
+    const skillsSection = `
+        <div class="resume-skills">
+            ${data.skills.technical.length > 0 ? `<div class="resume-skills-group"><strong>Technical</strong> ${data.skills.technical.map(s => `<span class="preview-pill">${s}</span>`).join('')}</div>` : ''}
+            ${data.skills.soft.length > 0 ? `<div class="resume-skills-group"><strong>Soft Skills</strong> ${data.skills.soft.map(s => `<span class="preview-pill">${s}</span>`).join('')}</div>` : ''}
+            ${data.skills.tools.length > 0 ? `<div class="resume-skills-group"><strong>Tools</strong> ${data.skills.tools.map(s => `<span class="preview-pill">${s}</span>`).join('')}</div>` : ''}
+        </div>
+    `;
 
     return `
         <div class="resume-paper ${template}">
@@ -243,9 +357,9 @@ function generateResumeHTML(data, template = 'classic') {
             ${experienceHTML ? `<section><h2>Experience</h2><div class="resume-section-content">${experienceHTML}</div></section>` : ''}
             ${educationHTML ? `<section><h2>Education</h2><div class="resume-section-content">${educationHTML}</div></section>` : ''}
             ${projectsHTML ? `<section><h2>Projects</h2><div class="resume-section-content">${projectsHTML}</div></section>` : ''}
-            ${data.skills ? `<section><h2>Skills</h2><p class="resume-item-desc">${data.skills}</p></section>` : ''}
+            ${(data.skills.technical.length || data.skills.soft.length || data.skills.tools.length) ? `<section><h2>Skills</h2>${skillsSection}</section>` : ''}
 
-            ${(!data.summary && !experienceHTML && !educationHTML && !projectsHTML && !data.skills) ? `
+            ${(!data.summary && !experienceHTML && !educationHTML && !projectsHTML && !data.skills.technical.length && !data.skills.soft.length && !data.skills.tools.length) ? `
                 <div style="height: 400px; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-md);">
                     Start entering data on the left to see your resume.
                 </div>
@@ -262,7 +376,22 @@ const views = {
             <button class="btn-primary" onclick="navigate('/builder')">Start Building</button>
         </div>
     `,
-    '/builder': () => `
+    '/builder': () => {
+        const skillsMarkup = (category, label) => `
+            <div class="form-section">
+                <h3>${label} (${resumeData.skills[category].length})</h3>
+                <div class="tag-input-wrapper">
+                    <div class="tags-container">
+                        ${resumeData.skills[category].map((s, i) => `
+                            <div class="tag-chip">${s} <span class="tag-remove" onclick="removeSkill('${category}', ${i})"><i data-lucide="x" size="12"></i></span></div>
+                        `).join('')}
+                    </div>
+                    <input type="text" class="input-field" placeholder="Type skill and press Enter" onkeydown="if(event.key==='Enter'){addSkill('${category}', this.value); this.value=''}">
+                </div>
+            </div>
+        `;
+
+        return `
         <div class="builder-layout view">
             <div class="form-panel">
                 <div class="score-card">
@@ -302,12 +431,20 @@ const views = {
                 </div>
 
                 <div class="form-section">
+                    <h3>Skills</h3>
+                    <button class="btn-suggest" onclick="suggestSkills()">✨ Suggest Skills</button>
+                    ${skillsMarkup('technical', 'Technical Skills')}
+                    ${skillsMarkup('soft', 'Soft Skills')}
+                    ${skillsMarkup('tools', 'Tools & Technologies')}
+                </div>
+
+                <div class="form-section">
                     <h3>Experience</h3>
                     <div class="dynamic-list">
                         ${resumeData.experience.map((exp, i) => {
-        const tips = getBulletGuidance(exp.description);
-        return `
-                                <div class="list-item">
+            const tips = getBulletGuidance(exp.description);
+            return `
+                                <div class="list-item" style="border: 1px solid var(--color-border); padding: 1rem; border-radius: var(--radius-md); position: relative; background: var(--color-bg); margin-bottom: 1rem;">
                                     <div class="input-group"><label>Company</label><input type="text" class="input-field" value="${exp.company}" oninput="resumeData.experience[${i}].company=this.value; saveToLocalStorage(); updateLivePreview()"></div>
                                     <div class="input-group" style="margin-top:0.5rem;"><label>Role</label><input type="text" class="input-field" value="${exp.role}" oninput="resumeData.experience[${i}].role=this.value; saveToLocalStorage(); updateLivePreview()"></div>
                                     <div class="input-group" style="margin-top:0.5rem;"><label>Description</label>
@@ -318,45 +455,60 @@ const views = {
                                 </div>
                             `}).join('')}
                     </div>
-                    <button class="btn-add" onclick="resumeData.experience.push({company:'', role:'', date:'', description:''}); render(); saveToLocalStorage()">+ Add Experience</button>
-                </div>
-
-                <div class="form-section">
-                    <h3>Education</h3>
-                    <div class="dynamic-list">
-                        ${resumeData.education.map((ed, i) => `
-                            <div class="list-item">
-                                <div class="input-group"><label>Institution</label><input type="text" class="input-field" value="${ed.institution}" oninput="resumeData.education[${i}].institution=this.value; saveToLocalStorage(); updateLivePreview()"></div>
-                                <div class="input-group" style="margin-top:0.5rem;"><label>Degree</label><input type="text" class="input-field" value="${ed.degree}" oninput="resumeData.education[${i}].degree=this.value; saveToLocalStorage(); updateLivePreview()"></div>
-                                <button onclick="resumeData.education.splice(${i},1); render(); saveToLocalStorage()" style="position: absolute; top: 1rem; right: 1rem; color: var(--color-error);"><i data-lucide="trash-2" size="16"></i></button>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button class="btn-add" onclick="resumeData.education.push({institution:'', degree:'', date:''}); render(); saveToLocalStorage()">+ Add Education</button>
+                    <button class="btn-add" style="color: var(--color-accent); font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 4px;" onclick="resumeData.experience.push({company:'', role:'', date:'', description:''}); render(); saveToLocalStorage()">+ Add Experience</button>
                 </div>
 
                 <div class="form-section">
                     <h3>Projects</h3>
                     <div class="dynamic-list">
                         ${resumeData.projects.map((proj, i) => {
-            const tips = getBulletGuidance(proj.description);
-            return `
-                                <div class="list-item">
-                                    <div class="input-group"><label>Project Name</label><input type="text" class="input-field" value="${proj.name}" oninput="resumeData.projects[${i}].name=this.value; saveToLocalStorage(); updateLivePreview()"></div>
-                                    <div class="input-group" style="margin-top:0.5rem;"><label>Description</label>
-                                        <textarea class="input-field" oninput="resumeData.projects[${i}].description=this.value; saveToLocalStorage(); updateLivePreview(); render()">${proj.description || ''}</textarea>
-                                        ${tips ? tips.map(t => `<div class="guidance-text"><i data-lucide="info" size="12"></i> ${t}</div>`).join('') : ''}
+                const tips = getBulletGuidance(proj.description);
+                return `
+                                <div class="accordion-item ${proj.isOpen ? 'open' : ''}">
+                                    <div class="accordion-header" onclick="toggleProject(${i})">
+                                        <span>${proj.title || 'New Project'}</span>
+                                        <i data-lucide="chevron-down" class="accordion-toggle" size="16"></i>
                                     </div>
-                                    <button onclick="resumeData.projects.splice(${i},1); render(); saveToLocalStorage()" style="position: absolute; top: 1rem; right: 1rem; color: var(--color-error);"><i data-lucide="trash-2" size="16"></i></button>
+                                    <div class="accordion-content">
+                                        <div class="input-group"><label>Project Title</label><input type="text" class="input-field" value="${proj.title}" oninput="resumeData.projects[${i}].title=this.value; saveToLocalStorage(); updateLivePreview()"></div>
+                                        <div class="input-group"><label>Description (Max 200 chars)</label>
+                                            <div class="textarea-wrapper">
+                                                <textarea class="input-field" maxlength="200" oninput="resumeData.projects[${i}].description=this.value; saveToLocalStorage(); updateLivePreview(); render()">${proj.description}</textarea>
+                                                <span class="char-counter ${proj.description.length >= 200 ? 'limit' : ''}">${proj.description.length}/200</span>
+                                            </div>
+                                            ${tips ? tips.map(t => `<div class="guidance-text"><i data-lucide="info" size="12"></i> ${t}</div>`).join('') : ''}
+                                        </div>
+                                        <div class="input-group">
+                                            <label>Tech Stack (Enter to add)</label>
+                                            <div class="tags-container" style="margin-top: 0.5rem;">
+                                                ${proj.techStack.map((t, ti) => `<div class="tag-chip">${t} <span class="tag-remove" onclick="removeProjectTech(${i}, ${ti})"><i data-lucide="x" size="12"></i></span></div>`).join('')}
+                                            </div>
+                                            <input type="text" class="input-field" placeholder="e.g. React" onkeydown="if(event.key==='Enter'){addProjectTech(${i}, this.value); this.value=''}">
+                                        </div>
+                                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                            <div class="input-group"><label>Live URL</label><input type="text" class="input-field" value="${proj.liveUrl}" oninput="resumeData.projects[${i}].liveUrl=this.value; saveToLocalStorage(); updateLivePreview()"></div>
+                                            <div class="input-group"><label>GitHub URL</label><input type="text" class="input-field" value="${proj.githubUrl}" oninput="resumeData.projects[${i}].githubUrl=this.value; saveToLocalStorage(); updateLivePreview()"></div>
+                                        </div>
+                                        <button class="btn-secondary" style="color: var(--color-error); border-color: var(--color-error); margin-top: 0.5rem;" onclick="resumeData.projects.splice(${i},1); render(); saveToLocalStorage()">Delete Project</button>
+                                    </div>
                                 </div>
                             `}).join('')}
                     </div>
-                    <button class="btn-add" onclick="resumeData.projects.push({name:'', description:'', date:''}); render(); saveToLocalStorage()">+ Add Project</button>
+                    <button class="btn-add" style="color: var(--color-accent); font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 4px;" onclick="addProject()">+ Add Project</button>
                 </div>
 
                 <div class="form-section">
-                    <h3>Skills</h3>
-                    <input type="text" class="input-field" placeholder="JavaScript, Python, React..." value="${resumeData.skills || ''}" oninput="handleInput('skills', null, this.value)">
+                    <h3>Education</h3>
+                    <div class="dynamic-list">
+                        ${resumeData.education.map((ed, i) => `
+                            <div class="list-item" style="border: 1px solid var(--color-border); padding: 1rem; border-radius: var(--radius-md); position: relative; background: var(--color-bg); margin-bottom: 1rem;">
+                                <div class="input-group"><label>Institution</label><input type="text" class="input-field" value="${ed.institution}" oninput="resumeData.education[${i}].institution=this.value; saveToLocalStorage(); updateLivePreview()"></div>
+                                <div class="input-group" style="margin-top:0.5rem;"><label>Degree</label><input type="text" class="input-field" value="${ed.degree}" oninput="resumeData.education[${i}].degree=this.value; saveToLocalStorage(); updateLivePreview()"></div>
+                                <button onclick="resumeData.education.splice(${i},1); render(); saveToLocalStorage()" style="position: absolute; top: 1rem; right: 1rem; color: var(--color-error);"><i data-lucide="trash-2" size="16"></i></button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn-add" style="color: var(--color-accent); font-weight: 600; font-size: 0.875rem; display: flex; align-items: center; gap: 4px;" onclick="resumeData.education.push({institution:'', degree:'', date:''}); render(); saveToLocalStorage()">+ Add Education</button>
                 </div>
 
                 <div class="form-section">
@@ -374,7 +526,7 @@ const views = {
                 </div>
             </div>
         </div>
-    `,
+    `},
     '/preview': () => `
         <div class="view" style="display: flex; flex-direction: column; align-items: center; background: #fff; padding: 2rem;">
             ${getValidationWarning()}
@@ -404,7 +556,7 @@ function render() {
     const path = hash.replace('#', '');
     const mainContent = document.getElementById('main-content');
     document.querySelectorAll('.nav-link').forEach(link => link.classList.toggle('active', link.dataset.route === path));
-    if (views[path]) mainContent.innerHTML = views[path]();
+    if (views[path]) mainContent.innerHTML = (typeof views[path] === 'function') ? views[path]() : views[path];
     else mainContent.innerHTML = views['/']();
     lucide.createIcons();
     updateLivePreview();
@@ -420,6 +572,13 @@ window.render = render;
 window.saveToLocalStorage = saveToLocalStorage;
 window.printResume = printResume;
 window.copyAsText = copyAsText;
+window.addSkill = addSkill;
+window.removeSkill = removeSkill;
+window.suggestSkills = suggestSkills;
+window.addProject = addProject;
+window.toggleProject = toggleProject;
+window.addProjectTech = addProjectTech;
+window.removeProjectTech = removeProjectTech;
 
 if (!window.location.hash) window.location.hash = '#/';
 else render();

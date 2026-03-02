@@ -307,53 +307,173 @@ textarea.input-field {
     display: block;
 }
 
-.dynamic-list {
+/* Skills & Tags */
+.tags-container {
     display: flex;
-    flex-direction: column;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
-.list-item {
+.tag-chip {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     border: 1px solid var(--color-border);
-    padding: 1rem;
-    border-radius: var(--radius-md);
+}
+
+.tag-remove {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: var(--color-text-muted);
+}
+
+.tag-remove:hover {
+    color: var(--color-error);
+}
+
+.tag-input-wrapper {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Accordion */
+.accordion-item {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+    overflow: hidden;
     background: var(--color-bg);
 }
 
-.btn-add {
-    color: var(--color-accent);
+.accordion-header {
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background: var(--color-surface);
     font-weight: 600;
     font-size: 0.875rem;
+}
+
+.accordion-content {
+    padding: 1.5rem;
+    display: none;
+    flex-direction: column;
+    gap: 1.25rem;
+    border-top: 1px solid var(--color-border);
+}
+
+.accordion-item.open .accordion-content {
+    display: flex;
+}
+
+.accordion-toggle {
+    transition: transform 0.3s ease;
+}
+
+.accordion-item.open .accordion-toggle {
+    transform: rotate(180deg);
+}
+
+/* Character Counter */
+.textarea-wrapper {
+    position: relative;
+}
+
+.char-counter {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+}
+
+.char-counter.limit {
+    color: var(--color-error);
+}
+
+/* Suggest Button */
+.btn-suggest {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    padding: 0.5rem 1rem;
+    border: 1px dashed var(--color-accent);
+    border-radius: var(--radius-md);
+    margin-top: 1rem;
+    width: fit-content;
 }
 
-/* Preview Area */
-.preview-panel {
-    background: #e2e8f0;
-    padding: 3rem;
-    border-radius: var(--radius-lg);
-    position: sticky;
-    top: 100px;
-    min-height: calc(100vh - 150px);
-    display: flex;
-    justify-content: center;
+.btn-suggest.loading {
+    opacity: 0.6;
+    pointer-events: none;
 }
 
-.resume-paper {
-    background: white;
-    width: 100%;
-    max-width: 800px;
-    min-height: 1000px;
-    box-shadow: var(--shadow-lg);
-    padding: 3rem;
+.spinner {
+    animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Resume Preview Upgrades */
+.resume-skills-group {
+    margin-bottom: 0.75rem;
+}
+
+.resume-skills-group strong {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: #666;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.resume-project-card {
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 4px;
+}
+
+.project-links {
     display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    color: black;
-    transition: all 0.3s ease;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.project-link {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: #444;
+}
+
+.preview-pill {
+    display: inline-block;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    margin-right: 4px;
+    margin-bottom: 4px;
 }
 
 /* Template: Classic */
