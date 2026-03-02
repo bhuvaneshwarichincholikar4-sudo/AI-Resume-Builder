@@ -154,6 +154,196 @@ textarea {
     box-shadow: var(--shadow-lg);
 }
 
+/* Preview Controls */
+.preview-panel {
+    background: #e2e8f0;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+}
+
+.preview-controls {
+    width: 100%;
+    max-width: 800px;
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.control-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    letter-spacing: 0.05em;
+}
+
+.thumbnail-picker {
+    display: flex;
+    gap: 1rem;
+}
+
+.template-thumb {
+    width: 100px;
+    height: 130px;
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.template-thumb:hover {
+    border-color: var(--color-text-muted);
+}
+
+.template-thumb.active {
+    border-color: var(--resume-accent);
+    border-width: 2px;
+}
+
+.template-thumb .checkmark {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--resume-accent);
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    z-index: 2;
+}
+
+.template-thumb.active .checkmark {
+    display: flex;
+}
+
+.thumb-sketch {
+    flex: 1;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sketch-line {
+    height: 2px;
+    background: #eee;
+    border-radius: 1px;
+}
+
+.sketch-line.title {
+    width: 50%;
+    height: 4px;
+    background: #ddd;
+    margin-bottom: 2px;
+}
+
+.sketch-modern {
+    display: grid;
+    grid-template-columns: 30% 1fr;
+    height: 100%;
+    border: 1px solid #eee;
+}
+
+.sketch-modern .s {
+    background: #f1f5f9;
+}
+
+.sketch-modern .m {
+    background: white;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.template-thumb-label {
+    background: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 4px 0;
+    border-top: 1px solid var(--color-border);
+}
+
+.color-picker {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.color-option {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 0 0 1px #e2e8f0;
+    transition: transform 0.2s ease;
+}
+
+.color-option:hover {
+    transform: scale(1.15);
+}
+
+.color-option.active {
+    box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--color-primary);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    z-index: 2000;
+    animation: slideUpFade 0.3s ease-out;
+}
+
+@keyframes slideUpFade {
+    from {
+        transform: translate(-50%, 1rem);
+        opacity: 0;
+    }
+
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
 .btn-secondary {
     background-color: var(--color-primary-light);
     color: var(--color-text-primary);
@@ -481,9 +671,15 @@ textarea.input-field {
     font-family: 'Inter', serif;
 }
 
+.resume-paper.classic h1,
+.resume-paper.classic h2 {
+    font-family: Georgia, 'Times New Roman', serif;
+    color: var(--resume-accent);
+}
+
 .resume-paper.classic header {
     text-align: center;
-    border-bottom: 2px solid #000;
+    border-bottom: 2px solid var(--resume-accent);
     padding-bottom: 1.5rem;
 }
 
@@ -491,32 +687,95 @@ textarea.input-field {
     justify-content: center;
 }
 
-/* Template: Modern */
-.resume-paper.modern header {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 1rem;
-    border-left: 8px solid #000;
-    padding-left: 1.5rem;
+.resume-paper.classic h2 {
+    border-bottom: 1px solid var(--resume-accent);
+    padding-bottom: 4px;
+    margin-top: 1.5rem;
 }
 
-.resume-paper.modern .resume-contact {
+/* Template: Modern */
+.resume-paper.modern {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    padding: 0;
+    overflow: hidden;
+    min-height: 1000px;
+}
+
+.resume-paper.modern .sidebar {
+    background: var(--resume-accent);
+    color: white;
+    padding: 3rem 1.5rem;
+    display: flex;
     flex-direction: column;
-    gap: 4px;
-    align-items: flex-end;
-    text-align: right;
+    gap: 2rem;
+}
+
+.resume-paper.modern .sidebar h1 {
+    color: white;
+    font-size: 1.75rem;
+    border: none;
+}
+
+.resume-paper.modern .sidebar h2 {
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    font-size: 0.8rem;
+    margin-top: 0;
+}
+
+.resume-paper.modern .sidebar .resume-contact {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.resume-paper.modern .sidebar .preview-pill {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.resume-paper.modern .main-content-area {
+    padding: 3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.resume-paper.modern h2 {
+    color: var(--resume-accent);
+    border-bottom: 2px solid var(--resume-accent);
 }
 
 /* Template: Minimal */
 .resume-paper.minimal {
     padding: 4rem;
     gap: 2rem;
+    font-family: 'Inter', sans-serif;
+}
+
+.resume-paper.minimal h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .resume-paper.minimal h2 {
-    border-bottom: none;
-    font-size: 0.875rem;
-    color: #666;
+    border: none;
+    font-size: 0.75rem;
+    color: var(--resume-accent);
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+}
+
+.resume-paper.minimal .resume-section-content {
+    border-left: 1px solid #eee;
+    padding-left: 1.5rem;
+}
+
+.resume-paper.minimal .preview-pill {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
 }
 
 /* Minimalist Resume Styles */

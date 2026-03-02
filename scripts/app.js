@@ -10,6 +10,8 @@ let resumeData = {
 };
 
 let activeTemplate = localStorage.getItem('resumeTemplateChoice') || 'classic';
+let activeColor = localStorage.getItem('resumeColorChoice') || 'hsl(168, 60%, 40%)';
+document.documentElement.style.setProperty('--resume-accent', activeColor);
 
 // Load from LocalStorage
 const savedData = localStorage.getItem('resumeBuilderData');
@@ -87,6 +89,21 @@ function setTemplate(template) {
     render();
 }
 
+function setActiveColor(color) {
+    activeColor = color;
+    localStorage.setItem('resumeColorChoice', color);
+    document.documentElement.style.setProperty('--resume-accent', color);
+    render();
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+
 function loadSampleData() {
     resumeData = JSON.parse(JSON.stringify(SAMPLE_DATA));
     saveToLocalStorage();
@@ -95,6 +112,7 @@ function loadSampleData() {
 
 // --- Export Logic ---
 function printResume() {
+    showToast("PDF export ready! Check your downloads.");
     window.print();
 }
 
@@ -284,14 +302,14 @@ function updateScoreUI() {
 
 // --- Component Templates ---
 function generateResumeHTML(data, template = 'classic') {
-    const educationHTML = data.education.filter(ed => ed.institution || ed.degree).map(ed => `
+    const renderEducation = () => data.education.filter(ed => ed.institution || ed.degree).map(ed => `
         <div class="resume-item">
             <div class="resume-item-header"><span>${ed.institution || ''}</span><span>${ed.date || ''}</span></div>
             <div class="resume-item-sub">${ed.degree || ''}</div>
         </div>
     `).join('');
 
-    const experienceHTML = data.experience.filter(exp => exp.company || exp.role).map(exp => `
+    const renderExperience = () => data.experience.filter(exp => exp.company || exp.role).map(exp => `
         <div class="resume-item">
             <div class="resume-item-header"><span>${exp.company || ''}</span><span>${exp.date || ''}</span></div>
             <div class="resume-item-sub">${exp.role || ''}</div>
@@ -299,7 +317,7 @@ function generateResumeHTML(data, template = 'classic') {
         </div>
     `).join('');
 
-    const projectsHTML = data.projects.filter(proj => proj.title).map(proj => `
+    const renderProjects = () => data.projects.filter(proj => proj.title).map(proj => `
         <div class="resume-item">
             <div class="resume-item-header">
                 <strong>${proj.title || ''}</strong>
@@ -316,7 +334,7 @@ function generateResumeHTML(data, template = 'classic') {
         </div>
     `).join('');
 
-    const skillsSection = `
+    const renderSkills = () => `
         <div class="resume-skills">
             ${data.skills.technical.length > 0 ? `<div class="resume-skills-group"><strong>Technical</strong> ${data.skills.technical.map(s => `<span class="preview-pill">${s}</span>`).join('')}</div>` : ''}
             ${data.skills.soft.length > 0 ? `<div class="resume-skills-group"><strong>Soft Skills</strong> ${data.skills.soft.map(s => `<span class="preview-pill">${s}</span>`).join('')}</div>` : ''}
@@ -324,46 +342,50 @@ function generateResumeHTML(data, template = 'classic') {
         </div>
     `;
 
+    const contactHeader = `
+        <div class="resume-contact">
+            ${data.personal.email ? `<span>${data.personal.email}</span>` : ''}
+            ${data.personal.phone ? `<span>${data.personal.phone}</span>` : ''}
+            ${data.personal.location ? `<span>${data.personal.location}</span>` : ''}
+            ${data.links.github ? `<span>${data.links.github}</span>` : ''}
+            ${data.links.linkedin ? `<span>${data.links.linkedin}</span>` : ''}
+        </div>
+    `;
+
+    if (template === 'modern') {
+        return `
+            <div class="resume-paper modern">
+                <div class="sidebar">
+                    <div>
+                        <h1>${data.personal.name || 'Your Name'}</h1>
+                        ${contactHeader}
+                    </div>
+                    <section>
+                        <h2>Skills</h2>
+                        ${renderSkills()}
+                    </section>
+                </div>
+                <div class="main-content-area">
+                    ${data.summary ? `<section><h2>Summary</h2><p class="resume-item-desc">${data.summary}</p></section>` : ''}
+                    ${data.experience.length ? `<section><h2>Experience</h2><div class="resume-section-content">${renderExperience()}</div></section>` : ''}
+                    ${data.projects.length ? `<section><h2>Projects</h2><div class="resume-section-content">${renderProjects()}</div></section>` : ''}
+                    ${data.education.length ? `<section><h2>Education</h2><div class="resume-section-content">${renderEducation()}</div></section>` : ''}
+                </div>
+            </div>`;
+    }
+
+    // Classic / Minimal Layout
     return `
         <div class="resume-paper ${template}">
             <header>
-                <div>
-                    <h1>${data.personal.name || 'Your Name'}</h1>
-                    ${template === 'modern' ? '' : `
-                        <div class="resume-contact">
-                            ${data.personal.email ? `<span>${data.personal.email}</span>` : ''}
-                            ${data.personal.phone ? `<span>${data.personal.phone}</span>` : ''}
-                            ${data.personal.location ? `<span>${data.personal.location}</span>` : ''}
-                        </div>
-                    `}
-                </div>
-                ${template === 'modern' ? `
-                    <div class="resume-contact">
-                        ${data.personal.email ? `<span>${data.personal.email}</span>` : ''}
-                        ${data.personal.phone ? `<span>${data.personal.phone}</span>` : ''}
-                        ${data.personal.location ? `<span>${data.personal.location}</span>` : ''}
-                        ${data.links.github ? `<span>${data.links.github}</span>` : ''}
-                        ${data.links.linkedin ? `<span>${data.links.linkedin}</span>` : ''}
-                    </div>
-                ` : `
-                    <div class="resume-contact" style="margin-top: 4px;">
-                        ${data.links.github ? `<span>${data.links.github}</span>` : ''}
-                        ${data.links.linkedin ? `<span>${data.links.linkedin}</span>` : ''}
-                    </div>
-                `}
+                <h1>${data.personal.name || 'Your Name'}</h1>
+                ${contactHeader}
             </header>
-
             ${data.summary ? `<section><h2>Summary</h2><p class="resume-item-desc">${data.summary}</p></section>` : ''}
-            ${experienceHTML ? `<section><h2>Experience</h2><div class="resume-section-content">${experienceHTML}</div></section>` : ''}
-            ${educationHTML ? `<section><h2>Education</h2><div class="resume-section-content">${educationHTML}</div></section>` : ''}
-            ${projectsHTML ? `<section><h2>Projects</h2><div class="resume-section-content">${projectsHTML}</div></section>` : ''}
-            ${(data.skills.technical.length || data.skills.soft.length || data.skills.tools.length) ? `<section><h2>Skills</h2>${skillsSection}</section>` : ''}
-
-            ${(!data.summary && !experienceHTML && !educationHTML && !projectsHTML && !data.skills.technical.length && !data.skills.soft.length && !data.skills.tools.length) ? `
-                <div style="height: 400px; display: flex; align-items: center; justify-content: center; color: var(--color-text-muted); border: 1px dashed var(--color-border); border-radius: var(--radius-md);">
-                    Start entering data on the left to see your resume.
-                </div>
-            ` : ''}
+            ${data.experience.length ? `<section><h2>Experience</h2><div class="resume-section-content">${renderExperience()}</div></section>` : ''}
+            ${data.projects.length ? `<section><h2>Projects</h2><div class="resume-section-content">${renderProjects()}</div></section>` : ''}
+            ${renderEducation() ? `<section><h2>Education</h2><div class="resume-section-content">${renderEducation()}</div></section>` : ''}
+            ${(data.skills.technical.length || data.skills.soft.length || data.skills.tools.length) ? `<section><h2>Skills</h2>${renderSkills()}</section>` : ''}
         </div>
     `;
 }
@@ -521,6 +543,52 @@ const views = {
             </div>
 
             <div class="preview-panel">
+                <div class="preview-controls">
+                    <div class="control-group">
+                        <span class="control-label">Select Template</span>
+                        <div class="thumbnail-picker">
+                            <div class="template-thumb ${activeTemplate === 'classic' ? 'active' : ''}" onclick="setTemplate('classic')">
+                                <div class="checkmark"><i data-lucide="check" size="10"></i></div>
+                                <div class="thumb-sketch">
+                                    <div class="sketch-line title" style="align-self: center;"></div>
+                                    <div class="sketch-line" style="width: 80%; align-self: center;"></div>
+                                    <div class="sketch-line section"></div>
+                                    <div class="sketch-line"></div>
+                                </div>
+                                <div class="template-thumb-label">Classic</div>
+                            </div>
+                            <div class="template-thumb ${activeTemplate === 'modern' ? 'active' : ''}" onclick="setTemplate('modern')">
+                                <div class="checkmark"><i data-lucide="check" size="10"></i></div>
+                                <div class="thumb-sketch sketch-modern">
+                                    <div class="s"></div>
+                                    <div class="m">
+                                        <div class="sketch-line title"></div>
+                                        <div class="sketch-line"></div>
+                                    </div>
+                                </div>
+                                <div class="template-thumb-label">Modern</div>
+                            </div>
+                            <div class="template-thumb ${activeTemplate === 'minimal' ? 'active' : ''}" onclick="setTemplate('minimal')">
+                                <div class="checkmark"><i data-lucide="check" size="10"></i></div>
+                                <div class="thumb-sketch">
+                                    <div class="sketch-line title" style="width: 40%"></div>
+                                    <div class="sketch-line"></div>
+                                    <div class="sketch-line" style="width: 90%; height: 1px; background: #f1f5f9; margin-top: 10px;"></div>
+                                    <div class="sketch-line"></div>
+                                </div>
+                                <div class="template-thumb-label">Minimal</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <span class="control-label">Theme Color</span>
+                        <div class="color-picker">
+                            ${['hsl(168, 60%, 40%)', 'hsl(220, 60%, 35%)', 'hsl(345, 60%, 35%)', 'hsl(150, 50%, 30%)', 'hsl(0, 0%, 25%)'].map(c => `
+                                <div class="color-option ${activeColor === c ? 'active' : ''}" style="background: ${c}" onclick="setActiveColor('${c}')"></div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
                 <div id="resume-preview-live" style="width: 100%;">
                     ${generateResumeHTML(resumeData, activeTemplate)}
                 </div>
@@ -579,6 +647,7 @@ window.addProject = addProject;
 window.toggleProject = toggleProject;
 window.addProjectTech = addProjectTech;
 window.removeProjectTech = removeProjectTech;
+window.setActiveColor = setActiveColor;
 
 if (!window.location.hash) window.location.hash = '#/';
 else render();
